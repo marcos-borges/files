@@ -31,3 +31,5 @@ do
         *)
     esac
 done
+
+echo $ARGUMENTS
